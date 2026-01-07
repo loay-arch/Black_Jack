@@ -1,22 +1,21 @@
 import struct
 MAGIC_COOKIE = 0xabcddcba
 MESSAGE_TYPE_OFFER = 0x2
-MSG_TYPE_REQUEST = 0x03
-MSG_TYPE_PAYLOAD = 0x04
+MSG_TYPE_REQUEST = 0x3
+MSG_TYPE_PAYLOAD = 0x4
 UDP_PORT = 13122
-SERVER_NAME = "LATINAAAA"
-CLIENT_NAME = "MAMACETA"
 
 
-def offer_Message():
+
+def offer_Message(server_port,server_name):
     """
         Packs the 'Offer' packet (Server -> Client).
         Format: Magic Cookie (4B), Type (1B), Server Port (2B), Server Name (32B)
         Total size: 4 + 1 + 2 + 32 = 39 bytes
         """
-    server_name_bytes = SERVER_NAME.encode('utf-8')
-    server_name_bytes.ljust(32, b'\x00')
-    return struct.pack('!IBH32s',MAGIC_COOKIE,MESSAGE_TYPE_OFFER,UDP_PORT,server_name_bytes)
+    server_name_bytes = server_name.encode('utf-8')
+    server_name_bytes=server_name_bytes.ljust(32, b'\x00')
+    return struct.pack('!IBH32s',MAGIC_COOKIE,MESSAGE_TYPE_OFFER,server_port,server_name_bytes)
 
 
 def unpack_offer(packet):
@@ -27,26 +26,27 @@ def unpack_offer(packet):
     try:
         # we expect exactly 39 bytes. ff we get less or more itss not our packet
         if len(packet) != 39:
-            return None
+            return None,None
         cookie, msg_type, server_port, name_bytes = struct.unpack('!IBH32s', packet)
         # validation checks
         if cookie != MAGIC_COOKIE:
-            return None
+            return None,None
         if msg_type != MESSAGE_TYPE_OFFER:
-            return None
-        return server_port
+            return None,None
+        server_name = name_bytes.decode('utf-8').rstrip('\x00')
+        return server_port, server_name
     except Exception as e:
         print(f"Error unpacking offer: {e}")
-        return None
+        return None,None
 
-def request_Message(num_of_rounds):
+def request_Message(num_of_rounds,client_name):
     """
             Packs the 'request' packet (Client -> Server).
             Format: Magic Cookie (4B), Type (1B), Number Of Rounds (1B), Client Team Name (32B)
             Total size: 4 + 1 + 1 + 32 = 38 bytes
             """
-    client_name_bytes = CLIENT_NAME.encode('utf-8')
-    client_name_bytes.ljust(32, b'\x00')
+    client_name_bytes = client_name.encode('utf-8')
+    client_name_bytes=client_name_bytes.ljust(32, b'\x00')
     return struct.pack("!IBB32s",MAGIC_COOKIE,MSG_TYPE_REQUEST,num_of_rounds,client_name_bytes)
 
 def unpack_request(packet):
@@ -55,11 +55,12 @@ def unpack_request(packet):
      Returns: number of rounds (int) or None if invalid.
      """
     if len(packet) != 38:
-        return None
+        return None,None
     cookie, msg_type, rounds, name_bytes = struct.unpack('!IBB32s',packet)
     if cookie != MAGIC_COOKIE or msg_type != MSG_TYPE_REQUEST :
-        return None
-    return rounds
+        return None,None
+    client_name = name_bytes.decode('utf-8').rstrip('\x00')
+    return rounds ,client_name
 
 def pack_Client_Payload(decision):
     """
@@ -70,9 +71,6 @@ def pack_Client_Payload(decision):
     if decision == "Hit":
         decision = "Hittt"
     decision_bytes = decision.encode('utf-8')
-    if len(decision_bytes) != 5:
-        print(f"Error: Decision must be 5 characters. Got: {decision}")
-        return None
     return struct.pack('!IB5s', MAGIC_COOKIE, MSG_TYPE_PAYLOAD, decision_bytes)
 
 
@@ -82,16 +80,12 @@ def unpack_client_payload(packet):
     Returns: 'Hit' , 'Stand', or None.
     """
     try:
-        if len(packet) != 10:  # 4 + 1 + 5 = 10 bytes
+        if len(packet) != 10:
             return None
-
         cookie, msg_type, decision_bytes = struct.unpack('!IB5s', packet)
-
         if cookie != MAGIC_COOKIE or msg_type != MSG_TYPE_PAYLOAD:
             return None
-
         decision = decision_bytes.decode('utf-8')
-
         if decision == "Hittt":
             return "Hit"
         return decision
@@ -125,3 +119,12 @@ def unpack_server_payload(packet):
         return result, rank, suit
     except:
         return None
+def recv_exact(sock, size):
+    """Makes sure we receive exactly size bytes."""
+    data = b''
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            raise ConnectionError("Server disconnected")
+        data += chunk
+    return data
