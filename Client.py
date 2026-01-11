@@ -21,7 +21,9 @@ class Client:
         # we create our socket, since its UDP socket we dont need any connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("", UDP_PORT))
+        # we get our actual IP address to make sure we listen on broadcasts in our network and not virtual machine
+        local_ip = self.get_local_ip()
+        sock.bind((local_ip, UDP_PORT))
 
         try:
             while True:
@@ -39,6 +41,17 @@ class Client:
                     print("Received invalid packet, ignoring...")
         finally:
             sock.close()
+
+    def get_local_ip(self):
+        """returns the local IP address."""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "127.0.0.1"
 
     def connect_and_play(self,server_name):
         """Establishes TCP connection and runs the black jack game session."""

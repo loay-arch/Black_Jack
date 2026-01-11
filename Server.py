@@ -20,6 +20,10 @@ class Server:
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # we bind the UDP socket to our actual local IP address.
+        # this is important because it forces the broadcast to go out through our
+        # physical network card (like WiFi) instead of staying inside a virtual interface like WSL.
+        self.udp_socket.bind((self.get_local_ip(), 0))
         print(f"Server started, listening on IP address {self.get_local_ip()}")
 
     def get_local_ip(self):
