@@ -39,6 +39,7 @@ class ClientGameSession:
                 data = recv_exact(self.tcp_socket, 9)
             except (socket.timeout, ConnectionError):
                 print("Connection lost. Returning to offer listening.")
+                self.tcp_socket.close()
                 return
             # in case of a corrupt packet we make sure that the data is not "None"
             parsed = unpack_server_payload(data)

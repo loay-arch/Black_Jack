@@ -15,7 +15,6 @@ class Server:
         self.tcp_socket.listen()
         self.tcp_port = self.tcp_socket.getsockname()[1]
         self.server_name = "Definitely_Not_Rigged"
-
         # UDP socket which broadcasts offers to play black jack
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # i enable permission to send broadcasts via this socket
@@ -53,26 +52,20 @@ class Server:
 
     def handle_client(self, client_sock):
         """Handle an individual client connection."""
+        client_sock.settimeout(12.0)
         try:
-            original_timeout = client_sock.gettimeout()  # save current socket timeout (could be None = blocking)
-            client_sock.settimeout(12.0)
-
-            try:
-                data = recv_exact(client_sock, 38)  # block waiting for exactly 38 bytes from client
-            except (socket.timeout, ConnectionError):  # client too slow or disconnected
-                return
-            finally:
-                client_sock.settimeout(original_timeout)  # restore original timeout for rest of connection
-
-            rounds , client_name = unpack_request(data)
-            if not rounds or not client_name:  # if invalid or malformed request
-                return
-
-            game = ServerGameSession(client_sock, rounds, client_name,self.server_name)
-            game.play()
-
-        finally:
+            data = recv_exact(client_sock, 38)  # block waiting for exactly 38 bytes from client
+        except (socket.timeout, ConnectionError):  # client too slow or disconnected
+            print("Client disconnected or respond timed out. Returned to sending offers.")
             client_sock.close()
+            return
+        rounds, client_name = unpack_request(data)
+        if not rounds or not client_name:  # if invalid or malformed request
+            print("Invalid data, Closing the connection.")
+            client_sock.close()
+            return
+        game = ServerGameSession(client_sock, rounds, client_name, self.server_name)
+        game.play()
 
     def start(self):
         """Starts the server broadcast offers and accept connections."""
