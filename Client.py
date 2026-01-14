@@ -20,6 +20,7 @@ class Client:
         print("Client started, listening for offer requests...")
         # we create our socket, since its UDP socket we dont need any connection setup
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # in case of crashes this allows me to reuse the port, without it if i restart the program quicly i could get errors.
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # we get our actual IP address to make sure we listen on broadcasts in our network and not virtual machine
         local_ip = self.get_local_ip()
@@ -45,8 +46,11 @@ class Client:
     def get_local_ip(self):
         """returns the local IP address."""
         try:
+            # we create the UDP socket here
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # we do "connect" although this is UDP to oly figure out which local interface will we use to reach that destination
             s.connect(("8.8.8.8", 80))
+            # after selecting a local interface we get our local ip address and port (we only need address)
             ip = s.getsockname()[0]
             s.close()
             return ip
@@ -58,8 +62,8 @@ class Client:
         tcp_sock = None
         try:
             tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # to prevent any connections issues we wait up to 5 seconds to connect. in case we dont we give up and look for offers agim.
-            tcp_sock.settimeout(5.0)
+            # to prevent any connections issues we wait up to 12 seconds to connect. in case we dont we give up and look for offers agim.
+            tcp_sock.settimeout(12.0)
             tcp_sock.connect((self.server_ip, self.server_port))
             print(f'Connected to {self.server_ip}:{self.server_port}\n')
             game_session = ClientGameSession(tcp_sock,server_name)

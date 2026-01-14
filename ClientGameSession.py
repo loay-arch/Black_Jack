@@ -16,7 +16,7 @@ class ClientGameSession:
 
     def __init__(self, tcp_socket, server_name):
         self.tcp_socket = tcp_socket
-        self.client_name = "JustOneMoreHand"
+        self.client_name = "Just_One_More_Hit"
         self.server_name = server_name
         self.my_hand = []
         self.dealer_hand = []
@@ -32,9 +32,9 @@ class ClientGameSession:
         print(f"\nStarting game for {self.total_rounds} rounds\n")
         while True:
             try:
-                # we set a 5 seconds timeout, if the server needs more than 5 seconds to send its payload message it probably means its disconnected or something
+                # we set a 12 seconds timeout, if the server needs more than 12 seconds to send its payload message it probably means its disconnected or something
                 # so we disable the connection and look for offers to play again.
-                self.tcp_socket.settimeout(5.0)
+                self.tcp_socket.settimeout(12.0)
                 # buffer size is exactly 9 bytes becuase we know that the server payload message size is supposed to be 9 bytes in size.
                 data = recv_exact(self.tcp_socket, 9)
             except (socket.timeout, ConnectionError):

@@ -14,11 +14,13 @@ class Server:
         self.tcp_socket.bind(('0.0.0.0', 0))  # 0 means the OS picks an available port number
         self.tcp_socket.listen()
         self.tcp_port = self.tcp_socket.getsockname()[1]
-        self.server_name = "DefinitelyNotRigged"
+        self.server_name = "Definitely_Not_Rigged"
 
         # UDP socket which broadcasts offers to play black jack
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # i enable permission to send broadcasts via this socket
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # in case of crashes this allows me to reuse the port, without it if i restart the program quicly i could get errors.
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # we bind the UDP socket to our actual local IP address.
         # this is important because it forces the broadcast to go out through our
@@ -29,8 +31,11 @@ class Server:
     def get_local_ip(self):
         """returns the local IP address."""
         try:
+            # create a UDP socket here
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # we do "connect" although this is UDP to oly figure out which local interface will we use to reach that destination
             s.connect(("8.8.8.8", 80))
+            # after selecting a local interface we get our local ip address and port (we only need address)
             ip = s.getsockname()[0]
             s.close()
             return ip
@@ -50,7 +55,7 @@ class Server:
         """Handle an individual client connection."""
         try:
             original_timeout = client_sock.gettimeout()  # save current socket timeout (could be None = blocking)
-            client_sock.settimeout(5.0)
+            client_sock.settimeout(12.0)
 
             try:
                 data = recv_exact(client_sock, 38)  # block waiting for exactly 38 bytes from client
